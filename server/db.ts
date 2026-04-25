@@ -2,18 +2,25 @@ import { and, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   bibleAssignments,
+  bibleBooks,
+  bibleChapterRecords,
   bibleRecords,
   cellProfiles,
   prayerRecords,
   users,
+  weeklyStats,
   type BibleAssignment,
+  type BibleBook,
+  type BibleChapterRecord,
   type BibleRecord,
   type CellProfile,
   type InsertBibleAssignment,
+  type InsertBibleChapterRecord,
   type InsertBibleRecord,
   type InsertCellProfile,
   type InsertPrayerRecord,
   type InsertUser,
+  type WeeklyStat,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -247,4 +254,173 @@ export async function getCellWeeklyPrayerMinutes(leaderId: number, weekStart: st
     total += Number(rows[0]?.s ?? 0);
   }
   return total;
+}
+
+// ─── Bible Books (Master Data) ─────────────────────────────────────────────────
+
+export async function getAllBibleBooks(): Promise<BibleBook[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(bibleBooks).orderBy(bibleBooks.order);
+}
+
+export async function getBibleBookByCode(bookCode: string): Promise<BibleBook | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(bibleBooks).where(eq(bibleBooks.bookCode, bookCode));
+  return rows[0] ?? null;
+}
+
+// ─── Bible Chapter Records (새로운 장 기반 기록) ────────────────────────────────
+
+export async function addBibleChapterRecord(data: InsertBibleChapterRecord): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(bibleChapterRecords).values(data);
+  return result[0].insertId;
+}
+
+export async function getUserBibleChapterRecords(userId: number): Promise<BibleChapterRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(bibleChapterRecords).where(eq(bibleChapterRecords.userId, userId))
+    .orderBy(desc(bibleChapterRecords.recordDate));
+}
+
+export async function getUserBibleChapterRecordsByBook(userId: number, bookCode: string): Promise<BibleChapterRecord[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(bibleChapterRecords)
+    .where(and(eq(bibleChapterRecords.userId, userId), eq(bibleChapterRecords.bookCode, bookCode)))
+    .orderBy(desc(bibleChapterRecords.recordDate));
+}
+
+export async function getCellWeeklyTotalChapters(leaderId: number, weekStart: string, weekEnd: string): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const members = await getCellMembers(leaderId);
+  const approvedIds = members.filter((m) => m.approvalStatus === "approved").map((m) => m.userId);
+  if (approvedIds.length === 0) return 0;
+  let total = 0;
+  for (const uid of approvedIds) {
+    const rows = await db.select({ s: sum(bibleChapterRecords.chapterCount) }).from(bibleChapterRecords)
+      .where(and(eq(bibleChapterRecords.userId, uid), gte(bibleChapterRecords.recordDate, weekStart), lte(bibleChapterRecords.recordDate, weekEnd)));
+    total += Number(rows[0]?.s ?? 0);
+  }
+  return total;
+}
+
+export async function getCellMembersWithChapterProgress(leaderId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const members = await getCellMembers(leaderId);
+  const approvedMembers = members.filter((m) => m.approvalStatus === "approved");
+  const results = [];
+  for (const member of approvedMembers) {
+    const assignment = await getBibleAssignmentByUserId(member.userId);
+    let completedChapters = 0;
+    if (assignment) {
+      const records = await db.select({
+        totalChapters: sql<number>`COALESCE(SUM(${bibleChapterRecords.chapterCount}), 0)`,
+      }).from(bibleChapterRecords).where(and(eq(bibleChapterRecords.userId, member.userId), eq(bibleChapterRecords.bookCode, assignment.bookCode)));
+      completedChapters = records[0]?.totalChapters ?? 0;
+    }
+    results.push({ userId: member.userId, displayName: member.displayName, assignment, completedChapters });
+  }
+  return results;
+}
+
+// ─── Weekly Stats (캐시) ────────────────────────────────────────────────────────
+
+export async function getOrCreateWeeklyStat(cellLeaderId: number, weekStartDate: string): Promise<WeeklyStat> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db.select().from(weeklyStats)
+    .where(and(eq(weeklyStats.cellLeaderId, cellLeaderId), eq(weeklyStats.weekStartDate, weekStartDate)));
+  if (rows.length > 0) return rows[0];
+  
+  // 새로운 주간 통계 생성
+  const weekEnd = new Date(weekStartDate);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  const totalChapters = await getCellWeeklyTotalChapters(cellLeaderId, weekStartDate, weekEndStr);
+  const totalMinutes = await getCellWeeklyPrayerMinutes(cellLeaderId, weekStartDate, weekEndStr);
+  
+  const result = await db.insert(weeklyStats).values({
+    cellLeaderId,
+    weekStartDate,
+    totalBibleChapters: totalChapters,
+    totalPrayerMinutes: totalMinutes,
+  });
+  
+  return {
+    id: result[0].insertId,
+    cellLeaderId,
+    weekStartDate,
+    totalBibleChapters: totalChapters,
+    totalPrayerMinutes: totalMinutes,
+    updatedAt: new Date(),
+  };
+}
+
+// ─── TOP 3 Rankings ────────────────────────────────────────────────────────
+export async function getCellBibleTop3(cellLeaderId: number, weekStartDate: string): Promise<Array<{ displayName: string; chapters: number }>> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const weekEnd = new Date(weekStartDate);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  const members = await getCellMembers(cellLeaderId);
+  const approvedMembers = members.filter((m) => m.approvalStatus === "approved");
+  
+  const results = [];
+  for (const member of approvedMembers) {
+    const records = await db.select({
+      totalChapters: sql<number>`COALESCE(SUM(${bibleChapterRecords.chapterCount}), 0)`,
+    }).from(bibleChapterRecords).where(and(
+      eq(bibleChapterRecords.userId, member.userId),
+      gte(bibleChapterRecords.recordDate, weekStartDate),
+      lte(bibleChapterRecords.recordDate, weekEndStr)
+    ));
+    
+    const chapters = records[0]?.totalChapters ?? 0;
+    if (chapters > 0) {
+      results.push({ displayName: member.displayName, chapters });
+    }
+  }
+  
+  return results.sort((a, b) => b.chapters - a.chapters).slice(0, 3);
+}
+
+export async function getCellPrayerTop3(cellLeaderId: number, weekStartDate: string): Promise<Array<{ displayName: string; minutes: number }>> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const weekEnd = new Date(weekStartDate);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  const members = await getCellMembers(cellLeaderId);
+  const approvedMembers = members.filter((m) => m.approvalStatus === "approved");
+  
+  const results = [];
+  for (const member of approvedMembers) {
+    const records = await db.select({
+      totalMinutes: sql<number>`COALESCE(SUM(${prayerRecords.minutes}), 0)`,
+    }).from(prayerRecords).where(and(
+      eq(prayerRecords.userId, member.userId),
+      gte(prayerRecords.recordDate, weekStartDate),
+      lte(prayerRecords.recordDate, weekEndStr)
+    ));
+    
+    const minutes = records[0]?.totalMinutes ?? 0;
+    if (minutes > 0) {
+      results.push({ displayName: member.displayName, minutes });
+    }
+  }
+  
+  return results.sort((a, b) => b.minutes - a.minutes).slice(0, 3);
 }

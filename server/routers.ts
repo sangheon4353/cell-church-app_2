@@ -101,6 +101,36 @@ export const appRouter = router({
   health: publicProcedure.query(() => ({ status: "ok" })),
   bibleBooks: publicProcedure.query(() => BIBLE_BOOKS),
 
+  // ─── Bible Chapter Records (새로운 장 기반 기록) ──────────────────────────────
+  bibleChapterRecord: router({
+    listByBook: protectedProcedure
+      .input(z.object({ bookCode: z.string() }))
+      .query(async ({ ctx, input }) => {
+        return db.getUserBibleChapterRecordsByBook(ctx.user.id, input.bookCode);
+      }),
+    add: protectedProcedure
+      .input(z.object({
+        bookCode: z.string(),
+        bookName: z.string().optional(),
+        chapterStart: z.number().min(1),
+        chapterEnd: z.number().min(1),
+        recordDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const chapterCount = input.chapterEnd - input.chapterStart + 1;
+        const book = BIBLE_BOOKS.find(b => b.code === input.bookCode);
+        return db.addBibleChapterRecord({
+          userId: ctx.user.id,
+          bookCode: input.bookCode,
+          bookName: book?.name ?? input.bookCode,
+          chapterStart: input.chapterStart,
+          chapterEnd: input.chapterEnd,
+          chapterCount,
+          recordDate: input.recordDate,
+        });
+      }),
+  }),
+
   // ─── Cell Profile ─────────────────────────────────────────────────────────────
   profile: router({
     get: protectedProcedure.query(async ({ ctx }) => {
@@ -287,6 +317,21 @@ export const appRouter = router({
         db.getCellWeeklyPrayerMinutes(leaderId, weekStart, weekEnd),
       ]);
       return { myMinutes, cellMinutes, weekStart, weekEnd };
+    }),
+  }),
+  // ─── TOP 3 Rankings ────────────────────────────────────────────────────────
+  rankings: router({
+    bibleTop3: protectedProcedure.query(async ({ ctx }) => {
+      const { weekStart } = getWeekRange();
+      const profile = await db.getCellProfileByUserId(ctx.user.id);
+      const leaderId = profile?.isLeader ? ctx.user.id : (profile?.leaderId ?? ctx.user.id);
+      return db.getCellBibleTop3(leaderId, weekStart);
+    }),
+    prayerTop3: protectedProcedure.query(async ({ ctx }) => {
+      const { weekStart } = getWeekRange();
+      const profile = await db.getCellProfileByUserId(ctx.user.id);
+      const leaderId = profile?.isLeader ? ctx.user.id : (profile?.leaderId ?? ctx.user.id);
+      return db.getCellPrayerTop3(leaderId, weekStart);
     }),
   }),
 });

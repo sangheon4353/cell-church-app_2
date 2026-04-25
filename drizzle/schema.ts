@@ -97,3 +97,53 @@ export const prayerRecords = mysqlTable("prayer_records", {
 
 export type PrayerRecord = typeof prayerRecords.$inferSelect;
 export type InsertPrayerRecord = typeof prayerRecords.$inferInsert;
+
+/**
+ * 66권 성경 기본 정보 (읽기 전용 마스터 데이터)
+ */
+export const bibleBooks = mysqlTable("bible_books", {
+  id: int("id").autoincrement().primaryKey(),
+  bookCode: varchar("bookCode", { length: 10 }).notNull().unique(), // GEN, EXO, LEV, ...
+  bookName: varchar("bookName", { length: 50 }).notNull(), // 창세기, 출애굽기, ...
+  bookNameEng: varchar("bookNameEng", { length: 50 }).notNull(), // Genesis, Exodus, ...
+  totalChapters: int("totalChapters").notNull(),
+  testament: mysqlEnum("testament", ["old", "new"]).notNull(), // 구약/신약
+  order: int("order").notNull(), // 성경 순서 (1~66)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BibleBook = typeof bibleBooks.$inferSelect;
+export type InsertBibleBook = typeof bibleBooks.$inferInsert;
+
+/**
+ * 성경 쓰기 기록 (장 단위) - 기존 절 기반 기록과 병행
+ */
+export const bibleChapterRecords = mysqlTable("bible_chapter_records", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  bookCode: varchar("bookCode", { length: 10 }).notNull(),
+  bookName: varchar("bookName", { length: 50 }).notNull(),
+  chapterStart: int("chapterStart").notNull(), // 시작 장
+  chapterEnd: int("chapterEnd").notNull(), // 종료 장
+  chapterCount: int("chapterCount").notNull(), // chapterEnd - chapterStart + 1
+  recordDate: varchar("recordDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BibleChapterRecord = typeof bibleChapterRecords.$inferSelect;
+export type InsertBibleChapterRecord = typeof bibleChapterRecords.$inferInsert;
+
+/**
+ * 주간 통계 캐시 (성능 최적화)
+ */
+export const weeklyStats = mysqlTable("weekly_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  cellLeaderId: int("cellLeaderId").notNull(), // 셀 리더 userId
+  weekStartDate: varchar("weekStartDate", { length: 10 }).notNull(), // YYYY-MM-DD (월요일)
+  totalBibleChapters: int("totalBibleChapters").notNull(), // 셀 전체 기록된 장 수
+  totalPrayerMinutes: int("totalPrayerMinutes").notNull(), // 셀 전체 기도 시간
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WeeklyStat = typeof weeklyStats.$inferSelect;
+export type InsertWeeklyStat = typeof weeklyStats.$inferInsert;

@@ -55,13 +55,17 @@ export default function HomeScreen() {
   const weeklyBibleQuery = trpc.bibleRecord.weeklyTotal.useQuery();
   const prayerStatsQuery = trpc.prayerRecord.weeklyStats.useQuery();
   const profileQuery = trpc.profile.get.useQuery();
+  const bibleTop3Query = trpc.rankings.bibleTop3.useQuery();
+  const prayerTop3Query = trpc.rankings.prayerTop3.useQuery();
 
-  const isRefreshing = weeklyBibleQuery.isFetching || prayerStatsQuery.isFetching;
+  const isRefreshing = weeklyBibleQuery.isFetching || prayerStatsQuery.isFetching || bibleTop3Query.isFetching || prayerTop3Query.isFetching;
 
   const onRefresh = () => {
     weeklyBibleQuery.refetch();
     prayerStatsQuery.refetch();
     profileQuery.refetch();
+    bibleTop3Query.refetch();
+    prayerTop3Query.refetch();
   };
 
   const totalVerses = weeklyBibleQuery.data?.total ?? 0;
@@ -194,6 +198,55 @@ export default function HomeScreen() {
           <Text style={[styles.myStatLabel, { color: colors.muted }]}>내 이번 주 기도 시간</Text>
           <Text style={[styles.myStatValue, { color: colors.foreground }]}>{myPrayerMinutes}분</Text>
         </View>
+
+        {/* TOP 3 카드 */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 24 }]}>이번 주 TOP 3</Text>
+
+        {/* 성경 쓰기 TOP 3 */}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Text style={{ fontSize: 22 }}>🏆</Text>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>성경 쓰기 TOP 3</Text>
+            </View>
+          </View>
+          <View style={styles.top3List}>
+            {(bibleTop3Query.data ?? []).length > 0 ? (
+              (bibleTop3Query.data ?? []).map((item, idx) => (
+                <View key={idx} style={styles.top3Item}>
+                  <Text style={[styles.top3Rank, { color: colors.primary }]}>{idx + 1}</Text>
+                  <Text style={[styles.top3Name, { color: colors.foreground }]}>{item.displayName}</Text>
+                  <Text style={[styles.top3Value, { color: colors.success }]}>{item.chapters}장</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={[styles.emptyTop3, { color: colors.muted }]}>아직 기록이 없습니다</Text>
+            )}
+          </View>
+        </View>
+
+        {/* 기도 TOP 3 */}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Text style={{ fontSize: 22 }}>🙏</Text>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>기도 TOP 3</Text>
+            </View>
+          </View>
+          <View style={styles.top3List}>
+            {(prayerTop3Query.data ?? []).length > 0 ? (
+              (prayerTop3Query.data ?? []).map((item, idx) => (
+                <View key={idx} style={styles.top3Item}>
+                  <Text style={[styles.top3Rank, { color: colors.primary }]}>{idx + 1}</Text>
+                  <Text style={[styles.top3Name, { color: colors.foreground }]}>{item.displayName}</Text>
+                  <Text style={[styles.top3Value, { color: colors.success }]}>{item.minutes}분</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={[styles.emptyTop3, { color: colors.muted }]}>아직 기록이 없습니다</Text>
+            )}
+          </View>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -260,4 +313,20 @@ const styles = StyleSheet.create({
   },
   myStatLabel: { fontSize: 14 },
   myStatValue: { fontSize: 20, fontWeight: "700" },
+  top3List: { gap: 8 },
+  top3Item: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
+  top3Rank: { fontSize: 18, fontWeight: "700", width: 30, textAlign: "center" },
+  top3Name: { flex: 1, fontSize: 14, fontWeight: "500", marginLeft: 12 },
+  top3Value: { fontSize: 14, fontWeight: "700" },
+  emptyTop3: { textAlign: "center", paddingVertical: 16, fontSize: 13 },
 });
+
+// TOP 3 스타일 추가 (마지막 스타일 정의 전에 삽입)
+const top3Styles = `
+  top3List: { gap: 8 },
+  top3Item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
+  top3Rank: { fontSize: 18, fontWeight: '700', width: 30, textAlign: 'center' },
+  top3Name: { flex: 1, fontSize: 14, fontWeight: '500', marginLeft: 12 },
+  top3Value: { fontSize: 14, fontWeight: '700' },
+  emptyTop3: { textAlign: 'center', paddingVertical: 16, fontSize: 13 },
+`;

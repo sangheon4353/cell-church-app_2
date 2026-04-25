@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -38,6 +39,7 @@ export default function BibleScreen() {
   const router = useRouter();
   const colors = useColors();
   const { userId } = useAppAuth();
+  const [showInputModal, setShowInputModal] = useState(false);
 
   const weeklyStatsQuery = trpc.cell.weeklyStats.useQuery();
   const myAssignmentQuery = trpc.bibleAssignment.get.useQuery();
@@ -48,6 +50,15 @@ export default function BibleScreen() {
   const onRefresh = () => {
     weeklyStatsQuery.refetch();
     myAssignmentQuery.refetch();
+  };
+
+  const handleAddRecord = (mode: 'verse' | 'chapter') => {
+    setShowInputModal(false);
+    if (mode === 'verse') {
+      router.push("/bible-input" as never);
+    } else {
+      router.push("/bible-chapter-input" as never);
+    }
   };
 
   const totalVerses = weeklyStatsQuery.data?.totalVerses ?? 0;
@@ -125,7 +136,7 @@ export default function BibleScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>성경 쓰기</Text>
         <Pressable
-          onPress={() => router.push("/bible-input" as never)}
+          onPress={() => setShowInputModal(true)}
           style={({ pressed }) => [
             styles.addButton,
             { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
@@ -168,11 +179,86 @@ export default function BibleScreen() {
           }
         />
       )}
+
+
+      {/* 입력 방식 선택 모달 */}
+      <Modal visible={showInputModal} transparent animationType="fade">
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowInputModal(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>입력 방식 선택</Text>
+            <Text style={[styles.modalDesc, { color: colors.muted }]}>어떤 방식으로 기록하시겠어요?</Text>
+
+            <View style={styles.modalOptions}>
+              {/* 절 기반 입력 */}
+              <Pressable
+                onPress={() => handleAddRecord('verse')}
+                style={({ pressed }) => [
+                  styles.modalOption,
+                  { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Text style={[styles.modalOptionEmoji]}>📖</Text>
+                <Text style={[styles.modalOptionTitle, { color: colors.foreground }]}>절 기반</Text>
+                <Text style={[styles.modalOptionDesc, { color: colors.muted }]}>특정 절 범위 입력</Text>
+              </Pressable>
+
+              {/* 장 기반 입력 */}
+              <Pressable
+                onPress={() => handleAddRecord('chapter')}
+                style={({ pressed }) => [
+                  styles.modalOption,
+                  { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Text style={[styles.modalOptionEmoji]}>📚</Text>
+                <Text style={[styles.modalOptionTitle, { color: colors.foreground }]}>장 기반</Text>
+                <Text style={[styles.modalOptionDesc, { color: colors.muted }]}>장 범위 입력</Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={() => setShowInputModal(false)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.modalCancel, { color: colors.muted }]}>취소</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+    modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalContent: {
+    borderRadius: 20,
+    padding: 24,
+    width: "85%",
+    gap: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700" },
+  modalDesc: { fontSize: 14 },
+  modalOptions: { gap: 12 },
+  modalOption: {
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    gap: 8,
+  },
+  modalOptionEmoji: { fontSize: 32 },
+  modalOptionTitle: { fontSize: 16, fontWeight: "600" },
+  modalOptionDesc: { fontSize: 13 },
+  modalCancel: { fontSize: 16, fontWeight: "500", textAlign: "center", paddingVertical: 12 },
+  
   header: {
     flexDirection: "row",
     alignItems: "center",

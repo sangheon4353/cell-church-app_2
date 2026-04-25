@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { DateWheelPicker } from "@/components/date-wheel-picker";
 import {
   ActivityIndicator,
   Alert,
@@ -155,16 +156,7 @@ export default function RegisterScreen() {
 
             <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.foreground }]}>생년월일</Text>
-              <TextInput
-                value={birthDate}
-                onChangeText={setBirthDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.muted}
-                keyboardType="numeric"
-                maxLength={10}
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground }]}
-                returnKeyType="done"
-              />
+              <DateWheelPicker value={birthDate} onChange={setBirthDate} minYear={1950} maxYear={new Date().getFullYear()} />
             </View>
 
             <View style={styles.fieldGroup}>
