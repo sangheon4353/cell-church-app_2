@@ -66,14 +66,6 @@ export default function BibleInputScreen() {
       Alert.alert("알림", `장을 1~${assignment.totalChapters} 사이로 입력해주세요.`);
       return;
     }
-    if (!verseStartNum || verseStartNum < 1) {
-      Alert.alert("알림", "시작 절을 입력해주세요.");
-      return;
-    }
-    if (!verseEndNum || verseEndNum < verseStartNum) {
-      Alert.alert("알림", "끝 절은 시작 절 이상이어야 합니다.");
-      return;
-    }
 
     addRecordMutation.mutate({
       bookCode: assignment.bookCode,
@@ -152,44 +144,6 @@ export default function BibleInputScreen() {
                 returnKeyType="next"
               />
             </View>
-
-            {/* 절 범위 입력 */}
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: colors.foreground }]}>절 범위 (Verse)</Text>
-              <View style={styles.verseRow}>
-                <TextInput
-                  value={verseStart}
-                  onChangeText={setVerseStart}
-                  placeholder="시작 절"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="numeric"
-                  style={[styles.input, styles.verseInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground }]}
-                  returnKeyType="next"
-                />
-                <Text style={[styles.verseSeparator, { color: colors.muted }]}>~</Text>
-                <TextInput
-                  value={verseEnd}
-                  onChangeText={setVerseEnd}
-                  placeholder="끝 절"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="numeric"
-                  style={[styles.input, styles.verseInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground }]}
-                  returnKeyType="done"
-                />
-              </View>
-            </View>
-
-            {/* 절 수 미리보기 */}
-            {verseStart && verseEnd && parseInt(verseEnd) >= parseInt(verseStart) && (
-              <View style={[styles.previewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.previewText, { color: colors.muted }]}>
-                  {assignment.bookName} {chapter || "?"}장 {verseStart}절 ~ {verseEnd}절
-                </Text>
-                <Text style={[styles.previewCount, { color: colors.primary }]}>
-                  총 {parseInt(verseEnd) - parseInt(verseStart) + 1}절
-                </Text>
-              </View>
-            )}
 
             {/* 기록된 장 표시 */}
             {recordedChapters.size > 0 && (
