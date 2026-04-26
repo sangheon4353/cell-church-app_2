@@ -155,9 +155,9 @@ export default function HomeScreen() {
             <Text style={[styles.statNumber, { color: colors.primary }]}>
               {totalVerses.toLocaleString()}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>절 작성</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>장 작성</Text>
           </View>
-          <Text style={[styles.cardDesc, { color: colors.muted }]}>셀 전체 이번 주 작성 절 수</Text>
+          <Text style={[styles.cardDesc, { color: colors.muted }]}>셀 전체 이번 주 작성 장 수</Text>
         </Pressable>
 
         {/* 기도 시간 카드 */}
