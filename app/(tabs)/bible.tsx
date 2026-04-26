@@ -151,7 +151,7 @@ export default function BibleScreen() {
         <Text style={styles.totalLabel}>이번 주 셀 전체 작성</Text>
         <View style={styles.totalRow}>
           <Text style={styles.totalNumber}>{totalVerses.toLocaleString()}</Text>
-          <Text style={styles.totalUnit}>절</Text>
+          <Text style={styles.totalUnit}>장</Text>
         </View>
       </View>
 
@@ -190,20 +190,6 @@ export default function BibleScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>입력 방식 선택</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>어떤 방식으로 기록하시겠어요?</Text>
-
-            <View style={styles.modalOptions}>
-              {/* 절 기반 입력 */}
-              <Pressable
-                onPress={() => handleAddRecord('verse')}
-                style={({ pressed }) => [
-                  styles.modalOption,
-                  { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Text style={[styles.modalOptionEmoji]}>📖</Text>
-                <Text style={[styles.modalOptionTitle, { color: colors.foreground }]}>절 기반</Text>
-                <Text style={[styles.modalOptionDesc, { color: colors.muted }]}>특정 절 범위 입력</Text>
-              </Pressable>
 
               {/* 장 기반 입력 */}
               <Pressable
