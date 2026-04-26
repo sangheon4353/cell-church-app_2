@@ -20,21 +20,85 @@ const BIBLE_BOOKS = [
   { code: "LEV", name: "레위기", chapters: 27 },
   { code: "NUM", name: "민수기", chapters: 36 },
   { code: "DEU", name: "신명기", chapters: 34 },
+  
+  // 역사서 (12권)
   { code: "JOS", name: "여호수아", chapters: 24 },
   { code: "JDG", name: "사사기", chapters: 21 },
   { code: "RUT", name: "룻기", chapters: 4 },
+  { code: "1SA", name: "사무엘상", chapters: 31 },
+  { code: "2SA", name: "사무엘하", chapters: 24 },
+  { code: "1KI", name: "열왕기상", chapters: 22 },
+  { code: "2KI", name: "열왕기하", chapters: 25 },
+  { code: "1CH", name: "역대상", chapters: 29 },
+  { code: "2CH", name: "역대하", chapters: 36 },
+  { code: "EZR", name: "스드라", chapters: 10 },
+  { code: "NEH", name: "느헤미야", chapters: 13 },
+  { code: "EST", name: "에스더", chapters: 10 },
+  
+  // 시가서/지혜서 (5권)
+  { code: "JOB", name: "욥기", chapters: 42 },
   { code: "PSA", name: "시편", chapters: 150 },
   { code: "PRO", name: "잠언", chapters: 31 },
+  { code: "ECC", name: "전도서", chapters: 12 },
+  { code: "SNG", name: "아가", chapters: 8 },
+  
+  // 대선지서 (5권)
+  { code: "ISA", name: "이사야", chapters: 66 },
+  { code: "JER", name: "예레미야", chapters: 52 },
+  { code: "LAM", name: "예레미야애가", chapters: 5 },
+  { code: "EZE", name: "에스겔", chapters: 48 },
+  { code: "DAN", name: "다니엘", chapters: 12 },
+  
+  // 소선지서 (12권)
+  { code: "HOS", name: "호세아", chapters: 14 },
+  { code: "JOL", name: "요엘", chapters: 3 },
+  { code: "AMO", name: "아모스", chapters: 9 },
+  { code: "OBA", name: "오바댜", chapters: 1 },
+  { code: "JON", name: "요나", chapters: 4 },
+  { code: "MIC", name: "미가", chapters: 7 },
+  { code: "NAH", name: "나훔", chapters: 3 },
+  { code: "HAB", name: "하박국", chapters: 3 },
+  { code: "ZEP", name: "스바냐", chapters: 3 },
+  { code: "HAG", name: "학개", chapters: 2 },
+  { code: "ZEC", name: "스가랴", chapters: 14 },
+  { code: "MAL", name: "말라기", chapters: 4 },
+  
+  // 신약복음서 (4권)
   { code: "MAT", name: "마태복음", chapters: 28 },
   { code: "MRK", name: "마가복음", chapters: 16 },
   { code: "LUK", name: "누가복음", chapters: 24 },
   { code: "JHN", name: "요한복음", chapters: 21 },
+  
+  // 역사서 (1권)
   { code: "ACT", name: "사도행전", chapters: 28 },
+  
+  // 바울서신 (13권)
   { code: "ROM", name: "로마서", chapters: 16 },
   { code: "1CO", name: "고린도전서", chapters: 16 },
+  { code: "2CO", name: "고린도후서", chapters: 13 },
+  { code: "GAL", name: "갈라디아서", chapters: 6 },
   { code: "EPH", name: "에베소서", chapters: 6 },
   { code: "PHP", name: "빌립보서", chapters: 4 },
-  { code: "REV", name: "요한계시록", chapters: 22 },
+  { code: "COL", name: "골로새서", chapters: 4 },
+  { code: "1TH", name: "데살로니가전서", chapters: 5 },
+  { code: "2TH", name: "데살로니가후서", chapters: 3 },
+  { code: "1TI", name: "디모데전서", chapters: 6 },
+  { code: "2TI", name: "디모데후서", chapters: 4 },
+  { code: "TIT", name: "디도서", chapters: 3 },
+  { code: "PHM", name: "빌레몬서", chapters: 1 },
+  
+  // 일반서신 (8권)
+  { code: "HEB", name: "히브리서", chapters: 13 },
+  { code: "JAS", name: "야고보서", chapters: 5 },
+  { code: "1PE", name: "베드로전서", chapters: 5 },
+  { code: "2PE", name: "베드로후서", chapters: 3 },
+  { code: "1JN", name: "요한일서", chapters: 5 },
+  { code: "2JN", name: "요한이서", chapters: 1 },
+  { code: "3JN", name: "요한삼서", chapters: 1 },
+  { code: "JUD", name: "유다서", chapters: 1 },
+  
+  // 계시문서 (1권)
+  { code: "REV", name: "요한계시록", chapters: 22 }
 ];
 
 type TabType = "pending" | "members";
