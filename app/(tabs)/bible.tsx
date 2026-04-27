@@ -204,7 +204,7 @@ export default function BibleScreen() {
                 <Text style={[styles.modalOptionTitle, { color: colors.foreground }]}>장 기반</Text>
                 <Text style={[styles.modalOptionDesc, { color: colors.muted }]}>장 범위 입력</Text>
               </Pressable>
-
+            </View>
 
             <Pressable
               onPress={() => setShowInputModal(false)}
