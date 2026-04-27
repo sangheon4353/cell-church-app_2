@@ -191,6 +191,7 @@ export default function BibleScreen() {
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>입력 방식 선택</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>어떤 방식으로 기록하시겠어요?</Text>
 
+            <View style={styles.modalOptions}>
               {/* 장 기반 입력 */}
               <Pressable
                 onPress={() => handleAddRecord('chapter')}

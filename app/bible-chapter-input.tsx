@@ -31,8 +31,13 @@ export default function BibleChapterInputScreen() {
     { enabled: !!assignmentQuery.data?.bookCode }
   );
 
+  const utils = trpc.useUtils();
   const addRecordMutation = trpc.bibleChapterRecord.add.useMutation({
     onSuccess: () => {
+      // 진행률 실시간 업데이트
+      utils.cell.weeklyStats.invalidate();
+      recordsQuery.refetch();
+      
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
