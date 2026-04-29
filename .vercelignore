@@ -1,0 +1,13 @@
+node_modules
+.git
+.github
+server
+drizzle
+scripts
+assets/images/*.backup
+*.log
+.env
+.env.local
+ios
+android
+.expo
