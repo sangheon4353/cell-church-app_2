@@ -198,12 +198,23 @@ export const appRouter = router({
       const { weekStart, weekEnd } = getWeekRange();
       const profile = await db.getCellProfileByUserId(ctx.user.id);
       const leaderId = profile?.isLeader ? ctx.user.id : (profile?.leaderId ?? ctx.user.id);
-      const [totalVerses, totalPrayer, membersProgress] = await Promise.all([
+      const [verseOnly, chapterOnly, totalPrayer, membersProgress] = await Promise.all([
         db.getCellWeeklyTotalVerses(leaderId, weekStart, weekEnd),
+        db.getCellWeeklyTotalChapters(leaderId, weekStart, weekEnd),
         db.getCellWeeklyPrayerMinutes(leaderId, weekStart, weekEnd),
         db.getCellMembersWithProgress(leaderId),
       ]);
-      return { totalVerses, totalPrayer, membersProgress, weekStart, weekEnd };
+      // 기존 호환성 유지: totalVerses = 절 + 장 합산
+      const totalVerses = verseOnly + chapterOnly;
+      return {
+        totalVerses,
+        verseOnlyTotal: verseOnly,
+        chapterOnlyTotal: chapterOnly,
+        totalPrayer,
+        membersProgress,
+        weekStart,
+        weekEnd,
+      };
     }),
   }),
 
@@ -275,8 +286,13 @@ export const appRouter = router({
       const { weekStart, weekEnd } = getWeekRange();
       const profile = await db.getCellProfileByUserId(ctx.user.id);
       const leaderId = profile?.isLeader ? ctx.user.id : (profile?.leaderId ?? ctx.user.id);
-      const total = await db.getCellWeeklyTotalVerses(leaderId, weekStart, weekEnd);
-      return { total, weekStart, weekEnd };
+      // 절 기반 기록 + 장 기반 기록 모두 합산
+      const [verseTotal, chapterTotal] = await Promise.all([
+        db.getCellWeeklyTotalVerses(leaderId, weekStart, weekEnd),
+        db.getCellWeeklyTotalChapters(leaderId, weekStart, weekEnd),
+      ]);
+      const total = verseTotal + chapterTotal;
+      return { total, verseTotal, chapterTotal, weekStart, weekEnd };
     }),
   }),
 
@@ -319,6 +335,32 @@ export const appRouter = router({
       return { myMinutes, cellMinutes, weekStart, weekEnd };
     }),
   }),
+  // ─── Daily Devotion (큐티 Y/N) ────────────────────────────────────────────────
+  devotion: router({
+    getTodayStatus: protectedProcedure.query(async ({ ctx }) => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      const completed = await db.getTodayDevotionStatus(ctx.user.id, todayStr);
+      return { completed, date: todayStr };
+    }),
+
+    setStatus: protectedProcedure
+      .input(z.object({ completed: z.boolean(), dateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.setDevotionStatus(ctx.user.id, input.dateStr, input.completed);
+        return { success: true };
+      }),
+
+    getCellStatus: protectedProcedure.query(async ({ ctx }) => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      const profile = await db.getCellProfileByUserId(ctx.user.id);
+      const leaderId = profile?.isLeader ? ctx.user.id : (profile?.leaderId ?? ctx.user.id);
+      const statuses = await db.getCellDevotionStatus(leaderId, todayStr);
+      return { statuses, date: todayStr };
+    }),
+  }),
+
   // ─── TOP 3 Rankings ────────────────────────────────────────────────────────
   rankings: router({
     bibleTop3: protectedProcedure.query(async ({ ctx }) => {

@@ -424,3 +424,45 @@ export async function getCellPrayerTop3(cellLeaderId: number, weekStartDate: str
   
   return results.sort((a, b) => b.minutes - a.minutes).slice(0, 3);
 }
+
+// ─── Daily Devotion (큐티 Y/N) ─────────────────────────────────────────────────
+import { dailyDevotionLogs } from "../drizzle/schema";
+
+export async function getTodayDevotionStatus(userId: number, dateStr: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db.select().from(dailyDevotionLogs)
+    .where(and(eq(dailyDevotionLogs.userId, userId), eq(dailyDevotionLogs.devotionDate, dateStr)));
+  return rows[0]?.completed ?? false;
+}
+
+export async function setDevotionStatus(userId: number, dateStr: string, completed: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(dailyDevotionLogs)
+    .where(and(eq(dailyDevotionLogs.userId, userId), eq(dailyDevotionLogs.devotionDate, dateStr)));
+  if (existing.length > 0) {
+    await db.update(dailyDevotionLogs).set({ completed })
+      .where(and(eq(dailyDevotionLogs.userId, userId), eq(dailyDevotionLogs.devotionDate, dateStr)));
+  } else {
+    await db.insert(dailyDevotionLogs).values({ userId, devotionDate: dateStr, completed });
+  }
+}
+
+export async function getCellDevotionStatus(leaderId: number, dateStr: string): Promise<Array<{ userId: number; displayName: string; completed: boolean }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const members = await getCellMembers(leaderId);
+  const approvedMembers = members.filter((m) => m.approvalStatus === "approved");
+  const results: Array<{ userId: number; displayName: string; completed: boolean }> = [];
+  for (const member of approvedMembers) {
+    const rows = await db.select().from(dailyDevotionLogs)
+      .where(and(eq(dailyDevotionLogs.userId, member.userId), eq(dailyDevotionLogs.devotionDate, dateStr)));
+    results.push({
+      userId: member.userId,
+      displayName: member.displayName,
+      completed: rows[0]?.completed ?? false,
+    });
+  }
+  return results;
+}

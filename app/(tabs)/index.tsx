@@ -57,8 +57,11 @@ export default function HomeScreen() {
   const profileQuery = trpc.profile.get.useQuery();
   const bibleTop3Query = trpc.rankings.bibleTop3.useQuery();
   const prayerTop3Query = trpc.rankings.prayerTop3.useQuery();
+  const devotionStatusQuery = trpc.devotion.getTodayStatus.useQuery();
+  const cellDevotionQuery = trpc.devotion.getCellStatus.useQuery();
+  const setDevotionMutation = trpc.devotion.setStatus.useMutation();
 
-  const isRefreshing = weeklyBibleQuery.isFetching || prayerStatsQuery.isFetching || bibleTop3Query.isFetching || prayerTop3Query.isFetching;
+  const isRefreshing = weeklyBibleQuery.isFetching || prayerStatsQuery.isFetching || bibleTop3Query.isFetching || prayerTop3Query.isFetching || devotionStatusQuery.isFetching || cellDevotionQuery.isFetching;
 
   const onRefresh = () => {
     weeklyBibleQuery.refetch();
@@ -66,6 +69,23 @@ export default function HomeScreen() {
     profileQuery.refetch();
     bibleTop3Query.refetch();
     prayerTop3Query.refetch();
+    devotionStatusQuery.refetch();
+    cellDevotionQuery.refetch();
+  };
+
+  const handleDevotionToggle = () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const newStatus = !(devotionStatusQuery.data?.completed ?? false);
+    setDevotionMutation.mutate(
+      { completed: newStatus, dateStr: todayStr },
+      {
+        onSuccess: () => {
+          devotionStatusQuery.refetch();
+          cellDevotionQuery.refetch();
+        },
+      }
+    );
   };
 
   const totalVerses = weeklyBibleQuery.data?.total ?? 0;
@@ -130,6 +150,33 @@ export default function HomeScreen() {
           <View style={styles.bibleCardFooter}>
             <Text style={styles.bibleCardLink}>sum.su.or.kr → 바로가기</Text>
           </View>
+        </Pressable>
+
+        {/* 오늘의 큐티 Y/N 체크 카드 */}
+        <Pressable
+          onPress={handleDevotionToggle}
+          disabled={setDevotionMutation.isPending}
+          style={({ pressed }) => [
+            styles.card,
+            {
+              backgroundColor: devotionStatusQuery.data?.completed ? "#E8F5E9" : colors.surface,
+              borderColor: devotionStatusQuery.data?.completed ? colors.success : colors.border,
+              opacity: pressed || setDevotionMutation.isPending ? 0.8 : 1,
+            },
+          ]}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Text style={{ fontSize: 22 }}>🙏</Text>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>오늘의 큐티</Text>
+            </View>
+            <Text style={[styles.devotionCheckmark, { color: devotionStatusQuery.data?.completed ? colors.success : colors.muted }]}>
+              {devotionStatusQuery.data?.completed ? "✓" : "○"}
+            </Text>
+          </View>
+          <Text style={[styles.cardDesc, { color: colors.muted }]}>
+            {devotionStatusQuery.data?.completed ? "오늘 큐티를 완료했어요!" : "오늘 큐티를 완료했나요?"}
+          </Text>
         </Pressable>
 
         {/* 이번 주 현황 */}
@@ -197,6 +244,40 @@ export default function HomeScreen() {
         <View style={[styles.myStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.myStatLabel, { color: colors.muted }]}>내 이번 주 기도 시간</Text>
           <Text style={[styles.myStatValue, { color: colors.foreground }]}>{myPrayerMinutes}분</Text>
+        </View>
+
+        {/* 셀 전체 큐티 현황 */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 24 }]}>셀 전체 큐티 현황</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Text style={{ fontSize: 22 }}>📋</Text>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>오늘 큐티 완료</Text>
+            </View>
+          </View>
+          <View style={styles.devotionGrid}>
+            {(cellDevotionQuery.data?.statuses ?? []).length > 0 ? (
+              (cellDevotionQuery.data?.statuses ?? []).map((item) => (
+                <View
+                  key={item.userId}
+                  style={[
+                    styles.devotionItem,
+                    {
+                      backgroundColor: item.completed ? colors.success + "20" : colors.border + "40",
+                      borderColor: item.completed ? colors.success : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.devotionName, { color: colors.foreground }]}>{item.displayName}</Text>
+                  <Text style={[styles.devotionStatus, { color: item.completed ? colors.success : colors.muted }]}>
+                    {item.completed ? "✓" : "✗"}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={[styles.emptyTop3, { color: colors.muted }]}>셀원 정보가 없습니다</Text>
+            )}
+          </View>
         </View>
 
         {/* TOP 3 카드 */}
@@ -319,14 +400,21 @@ const styles = StyleSheet.create({
   top3Name: { flex: 1, fontSize: 14, fontWeight: "500", marginLeft: 12 },
   top3Value: { fontSize: 14, fontWeight: "700" },
   emptyTop3: { textAlign: "center", paddingVertical: 16, fontSize: 13 },
+  devotionCheckmark: { fontSize: 24, fontWeight: "700" },
+  devotionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  devotionItem: {
+    flex: 1,
+    minWidth: "45%",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  devotionName: { fontSize: 13, fontWeight: "600", textAlign: "center" },
+  devotionStatus: { fontSize: 18, fontWeight: "700" },
 });
 
-// TOP 3 스타일 추가 (마지막 스타일 정의 전에 삽입)
-const top3Styles = `
-  top3List: { gap: 8 },
-  top3Item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
-  top3Rank: { fontSize: 18, fontWeight: '700', width: 30, textAlign: 'center' },
-  top3Name: { flex: 1, fontSize: 14, fontWeight: '500', marginLeft: 12 },
-  top3Value: { fontSize: 14, fontWeight: '700' },
-  emptyTop3: { textAlign: 'center', paddingVertical: 16, fontSize: 13 },
-`;
+

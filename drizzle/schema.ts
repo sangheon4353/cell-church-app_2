@@ -147,3 +147,18 @@ export const weeklyStats = mysqlTable("weekly_stats", {
 
 export type WeeklyStat = typeof weeklyStats.$inferSelect;
 export type InsertWeeklyStat = typeof weeklyStats.$inferInsert;
+
+/**
+ * 큐티(QT) 여부 기록 - 사용자별 일별 Y/N
+ */
+export const dailyDevotionLogs = mysqlTable("daily_devotion_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  devotionDate: varchar("devotionDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  completed: boolean("completed").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DailyDevotionLog = typeof dailyDevotionLogs.$inferSelect;
+export type InsertDailyDevotionLog = typeof dailyDevotionLogs.$inferInsert;
